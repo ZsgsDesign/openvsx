@@ -18,7 +18,6 @@ import java.util.HashMap;
 import com.google.common.base.Strings;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.http.conn.HttpHostConnectException;
 import org.eclipse.openvsx.util.TargetPlatform;
 import org.eclipse.openvsx.util.UrlUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +28,6 @@ import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
@@ -108,27 +106,22 @@ public class UpstreamRegistryService implements IExtensionRegistry {
     }
 
     private ResponseEntity<byte[]> getFile(String url) {
-        try {
-            var upstreamLocation = URI.create(url);
-            var request = new RequestEntity<Void>(HttpMethod.HEAD, upstreamLocation);
-            var response = restTemplate.exchange(request, byte[].class);
-            var statusCode = response.getStatusCode();
-            if (statusCode.is2xxSuccessful()) {
-                return ResponseEntity.status(HttpStatus.FOUND)
-                        .location(upstreamLocation)
-                        .build();
-            }
-            if (statusCode.is3xxRedirection()) {
-                return response;
-            }
-            if (statusCode.isError() && statusCode != HttpStatus.NOT_FOUND) {
-                logger.error("HEAD {}: {}", url, response);
-            }
-            throw new NotFoundException();
-        } catch (RestClientException exc) {
-            handleError(exc);
-            throw exc;
+        var upstreamLocation = URI.create(url);
+        var request = new RequestEntity<Void>(HttpMethod.HEAD, upstreamLocation);
+        var response = restTemplate.exchange(request, byte[].class);
+        var statusCode = response.getStatusCode();
+        if (statusCode.is2xxSuccessful()) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(upstreamLocation)
+                    .build();
         }
+        if (statusCode.is3xxRedirection()) {
+            return response;
+        }
+        if (statusCode.isError() && statusCode != HttpStatus.NOT_FOUND) {
+            logger.error("HEAD {}: {}", url, response);
+        }
+        throw new NotFoundException();
     }
 
     @Override
@@ -175,11 +168,7 @@ public class UpstreamRegistryService implements IExtensionRegistry {
     }
     
     private void handleError(Throwable exc) throws RuntimeException {
-        if (exc instanceof ResourceAccessException) {
-            throw new NotFoundException();
-        } else if (exc instanceof HttpHostConnectException) {
-            throw new NotFoundException();
-        } else if (exc instanceof HttpStatusCodeException) {
+        if (exc instanceof HttpStatusCodeException) {
             var status = ((HttpStatusCodeException) exc).getStatusCode();
             if (status == HttpStatus.NOT_FOUND)
                 throw new NotFoundException();

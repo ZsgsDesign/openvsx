@@ -58,6 +58,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHitsImpl;
 import org.springframework.data.elasticsearch.core.TotalHitsRelation;
@@ -404,7 +405,7 @@ public class VSCodeAPITest {
         Mockito.when(search.isEnabled())
                 .thenReturn(true);
         var searchOptions = new ISearchService.Options("yaml", null, targetPlatform, 50, 0, "desc", "relevance", false);
-        Mockito.when(search.search(searchOptions))
+        Mockito.when(search.search(searchOptions, PageRequest.of(0, 50)))
                 .thenReturn(searchHits);
 
         var extension = mockExtensionDTO();

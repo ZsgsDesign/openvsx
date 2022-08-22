@@ -58,9 +58,9 @@ public class RegistryAPI {
 
     protected Iterable<IExtensionRegistry> getRegistries() {
         var registries = new ArrayList<IExtensionRegistry>();
+        registries.add(local);
         if (upstream.isValid())
             registries.add(upstream);
-        registries.add(local);
         return registries;
     }
 
@@ -420,32 +420,19 @@ public class RegistryAPI {
         var options = new ISearchService.Options(query, category, targetPlatform, size, offset, sortOrder, sortBy, includeAllVersions);
         var result = new SearchResultJson();
         result.extensions = new ArrayList<>(size);
-        // for (var registry : getRegistries()) {
-        //     if (result.extensions.size() >= size) {
-        //         return ResponseEntity.ok(result);
-        //     }
-        //     try {
-        //         var subResult = registry.search(options);
-        //         if (subResult.extensions != null && subResult.extensions.size() > 0) {
-        //             int limit = size - result.extensions.size();
-        //             var subResultSize = mergeSearchResults(result, subResult.extensions, limit);
-        //             result.offset += subResult.offset;
-        //             offset = Math.max(offset - subResult.offset - subResultSize, 0);
-        //         }
-        //         result.totalSize += subResult.totalSize;
-        //     } catch (NotFoundException exc) {
-        //         // Try the next registry
-        //     } catch (ErrorResultException exc) {
-        //         return exc.toResponseEntity(SearchResultJson.class);
-        //     }
-        // }
         for (var registry : getRegistries()) {
+            if (result.extensions.size() >= size) {
+                return ResponseEntity.ok(result);
+            }
             try {
                 var subResult = registry.search(options);
-                result.extensions = subResult.extensions;
-                result.offset += subResult.offset;
+                if (subResult.extensions != null && subResult.extensions.size() > 0) {
+                    int limit = size - result.extensions.size();
+                    var subResultSize = mergeSearchResults(result, subResult.extensions, limit);
+                    result.offset += subResult.offset;
+                    offset = Math.max(offset - subResult.offset - subResultSize, 0);
+                }
                 result.totalSize += subResult.totalSize;
-                break;
             } catch (NotFoundException exc) {
                 // Try the next registry
             } catch (ErrorResultException exc) {
@@ -534,7 +521,6 @@ public class RegistryAPI {
                     else
                         result.extensions.addAll(subResult.extensions);
                 }
-                break;
             } catch (NotFoundException exc) {
                 // Try the next registry
             } catch (ErrorResultException exc) {
@@ -577,7 +563,6 @@ public class RegistryAPI {
                     else
                         result.extensions.addAll(subResult.extensions);
                 }
-                break;
             } catch (NotFoundException exc) {
                 // Try the next registry
             } catch (ErrorResultException exc) {

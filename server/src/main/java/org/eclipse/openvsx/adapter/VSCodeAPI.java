@@ -39,9 +39,9 @@ public class VSCodeAPI {
 
     private Iterable<IVSCodeService> getVSCodeServices() {
         var registries = new ArrayList<IVSCodeService>();
+        registries.add(local);
         if (upstream.isValid())
             registries.add(upstream);
-        registries.add(local);
         return registries;
     }
 
@@ -64,30 +64,19 @@ public class VSCodeAPI {
         var resultItem = new ExtensionQueryResult.ResultItem();
         resultItem.extensions = new ArrayList<>(size);
 
-        // var services = getVSCodeServices().iterator();
-        // while(resultItem.extensions.size() < size && services.hasNext()) {
-        //     try {
-        //         var service = services.next();
-        //         var subResult = service.extensionQuery(param, DEFAULT_PAGE_SIZE);
-        //         var subExtensions = subResult.results.get(0).extensions;
-        //         if (subExtensions != null && subExtensions.size() > 0) {
-        //             int limit = size - resultItem.extensions.size();
-        //             mergeExtensionQueryResults(resultItem, subExtensions, limit);
-        //         }
-
-        //         totalCount += getTotalCount(subResult);
-        //     } catch (NotFoundException | ResponseStatusException exc) {
-        //         // Try the next registry
-        //     }
-        // }
-        for (var service : getVSCodeServices()) {
+        var services = getVSCodeServices().iterator();
+        while(resultItem.extensions.size() < size && services.hasNext()) {
             try {
+                var service = services.next();
                 var subResult = service.extensionQuery(param, DEFAULT_PAGE_SIZE);
                 var subExtensions = subResult.results.get(0).extensions;
-                resultItem.extensions = subExtensions;
+                if (subExtensions != null && subExtensions.size() > 0) {
+                    int limit = size - resultItem.extensions.size();
+                    mergeExtensionQueryResults(resultItem, subExtensions, limit);
+                }
+
                 totalCount += getTotalCount(subResult);
-                break;
-            } catch (NotFoundException exc) {
+            } catch (NotFoundException | ResponseStatusException exc) {
                 // Try the next registry
             }
         }

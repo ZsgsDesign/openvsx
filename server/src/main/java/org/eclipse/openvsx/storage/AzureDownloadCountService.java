@@ -95,14 +95,13 @@ public class AzureDownloadCountService {
      * Indicates whether the download service is enabled by application config.
      */
     public boolean isEnabled() {
-        // var logsEnabled = !Strings.isNullOrEmpty(logsServiceEndpoint);
-        // var storageEnabled = !Strings.isNullOrEmpty(storageServiceEndpoint);
-        // if(logsEnabled && !storageEnabled) {
-        //     logger.warn("The ovsx.storage.azure.service-endpoint value must be set to enable AzureDownloadCountService");
-        // }
+        var logsEnabled = !Strings.isNullOrEmpty(logsServiceEndpoint);
+        var storageEnabled = !Strings.isNullOrEmpty(storageServiceEndpoint);
+        if(logsEnabled && !storageEnabled) {
+            logger.warn("The ovsx.storage.azure.service-endpoint value must be set to enable AzureDownloadCountService");
+        }
 
-        // return logsEnabled && storageEnabled;
-        return false;
+        return logsEnabled && storageEnabled;
     }
 
     /**

@@ -40,9 +40,9 @@ public class AzureBlobStorageService implements IStorageService {
 
     private BlobContainerClient containerClient;
 
-    @Override
-    public boolean isEnabled() {
-        return !Strings.isNullOrEmpty(serviceEndpoint);
+	@Override
+	public boolean isEnabled() {
+		return !Strings.isNullOrEmpty(serviceEndpoint);
     }
     
     protected BlobContainerClient getContainerClient() {
@@ -56,56 +56,56 @@ public class AzureBlobStorageService implements IStorageService {
         return containerClient;
     }
 
-    @Override
+	@Override
     public void uploadFile(FileResource resource) {
-        // var blobName = getBlobName(resource);
-        // if (Strings.isNullOrEmpty(serviceEndpoint)) {
-        //     throw new IllegalStateException("Cannot upload file "
-        //             + blobName + ": missing Azure blob service endpoint");
-        // }
+        var blobName = getBlobName(resource);
+        if (Strings.isNullOrEmpty(serviceEndpoint)) {
+            throw new IllegalStateException("Cannot upload file "
+                    + blobName + ": missing Azure blob service endpoint");
+        }
 
-        // uploadFile(resource.getContent(), resource.getName(), blobName);
+        uploadFile(resource.getContent(), resource.getName(), blobName);
     }
     
-    // protected void uploadFile(byte[] content, String fileName, String blobName) {
-    //     var blobClient = getContainerClient().getBlobClient(blobName);
-    //     var headers = new BlobHttpHeaders();
-    //     headers.setContentType(StorageUtil.getFileType(fileName).toString());
-    //     if (fileName.endsWith(".vsix")) {
-    //         headers.setContentDisposition("attachment; filename=\"" + fileName + "\"");
-    //     } else {
-    //         var cacheControl = StorageUtil.getCacheControl(fileName);
-    //         headers.setCacheControl(cacheControl.getHeaderValue());
-    //     }
-    //     try (var dataStream = new ByteArrayInputStream(content)) {
-    //         blobClient.upload(dataStream, content.length, true);
-    //         blobClient.setHttpHeaders(headers);
-    //     } catch (IOException exc) {
-    //         throw new RuntimeException(exc);
-    //     }
-    // }
-
-    @Override
-    public void removeFile(FileResource resource) {
-        // var blobName = getBlobName(resource);
-        // if (Strings.isNullOrEmpty(serviceEndpoint)) {
-        //     throw new IllegalStateException("Cannot remove file "
-        //             + blobName + ": missing Azure blob service endpoint");
-        // }
-
-        // try {
-        //     getContainerClient().getBlobClient(blobName).delete();
-        // } catch(BlobStorageException e) {
-        //     if(e.getStatusCode() != HttpStatus.NOT_FOUND.value()) {
-        //         // 404 indicates that the file is already deleted
-        //         // so only throw an exception for other status codes
-        //         throw e;
-        //     }
-        // }
+    protected void uploadFile(byte[] content, String fileName, String blobName) {
+        var blobClient = getContainerClient().getBlobClient(blobName);
+        var headers = new BlobHttpHeaders();
+        headers.setContentType(StorageUtil.getFileType(fileName).toString());
+        if (fileName.endsWith(".vsix")) {
+            headers.setContentDisposition("attachment; filename=\"" + fileName + "\"");
+        } else {
+            var cacheControl = StorageUtil.getCacheControl(fileName);
+            headers.setCacheControl(cacheControl.getHeaderValue());
+        }
+        try (var dataStream = new ByteArrayInputStream(content)) {
+            blobClient.upload(dataStream, content.length, true);
+            blobClient.setHttpHeaders(headers);
+        } catch (IOException exc) {
+            throw new RuntimeException(exc);
+        }
     }
 
-    @Override
-    public URI getLocation(FileResource resource) {
+	@Override
+	public void removeFile(FileResource resource) {
+		var blobName = getBlobName(resource);
+        if (Strings.isNullOrEmpty(serviceEndpoint)) {
+            throw new IllegalStateException("Cannot remove file "
+                    + blobName + ": missing Azure blob service endpoint");
+        }
+
+        try {
+            getContainerClient().getBlobClient(blobName).delete();
+        } catch(BlobStorageException e) {
+            if(e.getStatusCode() != HttpStatus.NOT_FOUND.value()) {
+                // 404 indicates that the file is already deleted
+                // so only throw an exception for other status codes
+                throw e;
+            }
+        }
+	}
+
+	@Override
+	public URI getLocation(FileResource resource) {
         var blobName = getBlobName(resource);
         if (Strings.isNullOrEmpty(serviceEndpoint)) {
             throw new IllegalStateException("Cannot determine location of file "
@@ -115,18 +115,18 @@ public class AzureBlobStorageService implements IStorageService {
             throw new IllegalStateException("The Azure blob service endpoint URL must end with a slash.");
         }
         return URI.create(serviceEndpoint + blobContainer + "/" + blobName);
-    }
+	}
 
     protected String getBlobName(FileResource resource) {
         var extVersion = resource.getExtension();
         var extension = extVersion.getExtension();
         var namespace = extension.getNamespace();
         var segments = new String[]{namespace.getName(), extension.getName()};
-        if(!TargetPlatform.isUniversal(extVersion)) {
-            segments = ArrayUtils.add(segments, extVersion.getTargetPlatform());
+		if(!TargetPlatform.isUniversal(extVersion)) {
+		    segments = ArrayUtils.add(segments, extVersion.getTargetPlatform());
         }
 
-        segments = ArrayUtils.add(segments, extVersion.getVersion());
+	    segments = ArrayUtils.add(segments, extVersion.getVersion());
         segments = ArrayUtils.addAll(segments, resource.getName().split("/"));
         return UrlUtil.createApiUrl("", segments).substring(1); // remove first '/'
     }

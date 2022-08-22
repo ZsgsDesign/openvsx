@@ -84,7 +84,7 @@ async function printMetadata(registry: Registry, extension: Extension, output?: 
     await promisify(fs.writeFile)(filePath, metadata);
 }
 
-export async function download(registry: Registry, extension: Extension, output?: string): Promise<string> {
+async function download(registry: Registry, extension: Extension, output?: string): Promise<void> {
     const downloadUrl = extension.files.download;
     if (!downloadUrl) {
         throw new Error(`Extension ${extension.namespace}.${extension.name} does not provide a download URL.`);
@@ -106,7 +106,6 @@ export async function download(registry: Registry, extension: Extension, output?
     const target = extension.targetPlatform !== 'universal' ? '@' + extension.targetPlatform : '';
     console.log(`Downloading ${extension.namespace}.${extension.name}-${extension.version}${target} to ${filePath}`);
     await registry.download(filePath, new URL(downloadUrl));
-    return filePath;
 }
 
 export interface GetOptions extends RegistryOptions {

@@ -28,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.util.Streamable;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -54,7 +55,7 @@ public class DatabaseSearchServiceTest {
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3)));
 
         var searchOptions = new ISearchService.Options(null, "Programming Languages", TargetPlatform.NAME_UNIVERSAL, 50, 0, null, null, false);
-        var result = search.search(searchOptions);
+        var result = search.search(searchOptions, PageRequest.of(0, 50));
         // should find two extensions
         assertThat(result.getTotalHits()).isEqualTo(2);
     }
@@ -67,7 +68,7 @@ public class DatabaseSearchServiceTest {
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3)));
 
         var searchOptions = new ISearchService.Options(null, null, TargetPlatform.NAME_UNIVERSAL, 50, 0, null, "relevance", false);
-        var result = search.search(searchOptions);
+        var result = search.search(searchOptions, PageRequest.of(0, 50));
         // should find all extensions but order should be different
         assertThat(result.getTotalHits()).isEqualTo(3);
 
@@ -85,7 +86,7 @@ public class DatabaseSearchServiceTest {
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2)));
 
         var searchOptions = new ISearchService.Options(null, "Programming Languages", TargetPlatform.NAME_UNIVERSAL, 50, 0, "desc", null, false);
-        var result = search.search(searchOptions);
+        var result = search.search(searchOptions, PageRequest.of(0, 50));
         // should find two extensions
         assertThat(result.getTotalHits()).isEqualTo(2);
 
@@ -105,10 +106,10 @@ public class DatabaseSearchServiceTest {
         var ext7 = mockExtension("ext7", 3.0, 100, 0, "redhat", Arrays.asList("Snippets", "Programming Languages"));
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4, ext5, ext6, ext7)));
 
-        var pageSizeItems = 5;
-        var searchOptions = new ISearchService.Options(null, null, TargetPlatform.NAME_UNIVERSAL, pageSizeItems, 0, null, null, false);
+        var searchOptions = new ISearchService.Options(null, null, TargetPlatform.NAME_UNIVERSAL, 50, 0, null, null, false);
 
-        var result = search.search(searchOptions);
+        var pageSizeItems = 5;
+        var result = search.search(searchOptions, PageRequest.of(0, pageSizeItems));
         // 7 total hits
         assertThat(result.getTotalHits()).isEqualTo(7);
         // but as we limit the page size it should only contains 5
@@ -133,12 +134,14 @@ public class DatabaseSearchServiceTest {
         var ext7 = mockExtension("ext7", 3.0, 100, 0, "redhat", Arrays.asList("Snippets", "Programming Languages"));
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4, ext5, ext6, ext7)));
 
-        var pageSizeItems = 2;
-        var searchOptions = new ISearchService.Options(null, null, TargetPlatform.NAME_UNIVERSAL, pageSizeItems, 4, null, null, false);
-        var result = search.search(searchOptions);
+        var searchOptions = new ISearchService.Options(null, null, TargetPlatform.NAME_UNIVERSAL, 50, 0, null, null, false);
 
+        var pageNumber = 2;
+        var pageSizeItems = 2;
+        var result = search.search(searchOptions, PageRequest.of(pageNumber, pageSizeItems));
         // 7 total hits
         assertThat(result.getTotalHits()).isEqualTo(7);
+
         // But it should only contains 2 search items as specified by the pageSize
         var hits = result.getSearchHits();
         assertThat(hits.size()).isEqualTo(pageSizeItems);
@@ -156,7 +159,7 @@ public class DatabaseSearchServiceTest {
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4)));
 
         var searchOptions = new ISearchService.Options("redhat", null, TargetPlatform.NAME_UNIVERSAL, 50, 0, null, null, false);
-        var result = search.search(searchOptions);
+        var result = search.search(searchOptions, PageRequest.of(0, 50));
         // namespace finding
         assertThat(result.getTotalHits()).isEqualTo(3);
 
@@ -176,7 +179,7 @@ public class DatabaseSearchServiceTest {
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4)));
 
         var searchOptions = new ISearchService.Options("openshift", null, TargetPlatform.NAME_UNIVERSAL, 50, 0, null, null, false);
-        var result = search.search(searchOptions);
+        var result = search.search(searchOptions, PageRequest.of(0, 50));
         // extension name finding
         assertThat(result.getTotalHits()).isEqualTo(1);
 
@@ -196,7 +199,7 @@ public class DatabaseSearchServiceTest {
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4)));
 
         var searchOptions = new ISearchService.Options("my custom desc", null, TargetPlatform.NAME_UNIVERSAL, 50, 0, null, null, false);
-        var result = search.search(searchOptions);
+        var result = search.search(searchOptions, PageRequest.of(0, 50));
         // custom description
         assertThat(result.getTotalHits()).isEqualTo(1);
 
@@ -216,7 +219,7 @@ public class DatabaseSearchServiceTest {
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4)));
 
         var searchOptions = new ISearchService.Options("Red Hat", null, TargetPlatform.NAME_UNIVERSAL, 50, 0, null, null, false);
-        var result = search.search(searchOptions);
+        var result = search.search(searchOptions, PageRequest.of(0, 50));
 
         // custom displayname
         assertThat(result.getTotalHits()).isEqualTo(1);
@@ -239,7 +242,7 @@ public class DatabaseSearchServiceTest {
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4)));
 
         var searchOptions = new ISearchService.Options(null, null, TargetPlatform.NAME_UNIVERSAL, 50, 0, null, "timestamp", false);
-        var result = search.search(searchOptions);
+        var result = search.search(searchOptions, PageRequest.of(0, 50));
         // all extensions should be there
         assertThat(result.getTotalHits()).isEqualTo(4);
 
@@ -260,7 +263,7 @@ public class DatabaseSearchServiceTest {
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4)));
 
         var searchOptions = new ISearchService.Options(null, null, TargetPlatform.NAME_UNIVERSAL, 50, 0, null, "downloadCount", false);
-        var result = search.search(searchOptions);
+        var result = search.search(searchOptions, PageRequest.of(0, 50));
         // all extensions should be there
         assertThat(result.getTotalHits()).isEqualTo(4);
 
@@ -281,7 +284,7 @@ public class DatabaseSearchServiceTest {
         Mockito.when(repositories.findAllActiveExtensions()).thenReturn(Streamable.of(List.of(ext1, ext2, ext3, ext4)));
 
         var searchOptions = new ISearchService.Options(null, null, TargetPlatform.NAME_UNIVERSAL, 50, 0, null, "averageRating", false);
-        var result = search.search(searchOptions);
+        var result = search.search(searchOptions, PageRequest.of(0, 50));
         // all extensions should be there
         assertThat(result.getTotalHits()).isEqualTo(4);
 

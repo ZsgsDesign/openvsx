@@ -14,10 +14,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
@@ -36,8 +34,6 @@ import org.eclipse.openvsx.util.ErrorResultException;
 import org.eclipse.openvsx.util.LicenseDetection;
 import org.eclipse.openvsx.util.TargetPlatform;
 import org.elasticsearch.common.Strings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.util.Pair;
 import org.springframework.http.HttpStatus;
 
@@ -56,8 +52,6 @@ public class ExtensionProcessor implements AutoCloseable {
     private static final Pattern LICENSE_PATTERN = Pattern.compile("SEE( (?<license>\\S+))? LICENSE IN (?<file>\\S+)");
 
     private static final String WEB_EXTENSION_TAG = "__web_extension";
-
-    protected final Logger logger = LoggerFactory.getLogger(ExtensionProcessor.class);
 
     private final InputStream inputStream;
     private byte[] content;
@@ -292,7 +286,7 @@ public class ExtensionProcessor implements AutoCloseable {
     }
 
     public List<FileResource> getResources(ExtensionVersion extension) {
-        var resources = new ArrayList<>(getAllResources(extension).collect(Collectors.toList()));
+        var resources = new ArrayList<>(getAllResources(extension));
         var binary = getBinary(extension);
         if (binary != null)
             resources.add(binary);
@@ -315,21 +309,11 @@ public class ExtensionProcessor implements AutoCloseable {
         return resources;
     }
 
-    public void processEachResource(ExtensionVersion extension, Consumer<FileResource> processor) {
-        getAllResources(extension).forEach(processor);
-    }
-
-    protected Stream<FileResource> getAllResources(ExtensionVersion extension) {
+    protected List<FileResource> getAllResources(ExtensionVersion extension) {
         readInputStream();
         return zipFile.stream()
                 .map(zipEntry -> {
-                    byte[] bytes;
-                    try {
-                        bytes = ArchiveUtil.readEntry(zipFile, zipEntry);
-                    } catch(ErrorResultException exc) {
-                        logger.warn("Failed to read entry", exc);
-                        bytes = null;
-                    }
+                    var bytes = ArchiveUtil.readEntry(zipFile, zipEntry);
                     if (bytes == null) {
                         return null;
                     }
@@ -340,7 +324,8 @@ public class ExtensionProcessor implements AutoCloseable {
                     resource.setContent(bytes);
                     return resource;
                 })
-                .filter(Objects::nonNull);
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     protected FileResource getBinary(ExtensionVersion extension) {

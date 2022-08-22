@@ -20,12 +20,12 @@ import org.eclipse.openvsx.entities.ExtensionVersion;
 import org.eclipse.openvsx.entities.FileResource;
 import org.eclipse.openvsx.entities.Namespace;
 import org.eclipse.openvsx.repositories.RepositoryService;
-import org.eclipse.openvsx.search.ISearchService;
 import org.eclipse.openvsx.search.SearchUtilService;
 import org.eclipse.openvsx.storage.StorageUtilService;
 import org.eclipse.openvsx.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -66,15 +66,13 @@ public class LocalVSCodeService implements IVSCodeService {
         String targetPlatform;
         String queryString = null;
         String category = null;
-        int pageNumber;
-        int pageSize;
+        PageRequest pageRequest;
         String sortOrder;
         String sortBy;
         Set<String> extensionIds;
         Set<String> extensionNames;
         if (param.filters == null || param.filters.isEmpty()) {
-            pageNumber = 0;
-            pageSize = defaultPageSize;
+            pageRequest = PageRequest.of(0, defaultPageSize);
             sortBy = "relevance";
             sortOrder = "desc";
             targetPlatform = null;
@@ -93,8 +91,8 @@ public class LocalVSCodeService implements IVSCodeService {
             var targetCriterion = filter.findCriterion(FILTER_TARGET);
             targetPlatform = TargetPlatform.isValid(targetCriterion) ? targetCriterion : null;
 
-            pageNumber = Math.max(0, filter.pageNumber - 1);
-            pageSize = filter.pageSize > 0 ? filter.pageSize : defaultPageSize;
+            var pageSize = filter.pageSize > 0 ? filter.pageSize : defaultPageSize;
+            pageRequest = PageRequest.of(filter.pageNumber - 1, pageSize);
             sortOrder = getSortOrder(filter.sortOrder);
             sortBy = getSortBy(filter.sortBy);
         }
@@ -118,11 +116,11 @@ public class LocalVSCodeService implements IVSCodeService {
             extensions = Collections.emptyList();
         } else {
             try {
-                var pageOffset = pageNumber * pageSize;
-                var searchOptions = new ISearchService.Options(queryString, category, targetPlatform, pageSize,
-                        pageOffset, sortOrder, sortBy, false);
+                var offset = pageRequest.getPageNumber() * pageRequest.getPageSize();
+                var searchOptions = new SearchUtilService.Options(queryString, category, targetPlatform, pageRequest.getPageSize(),
+                        offset, sortOrder, sortBy, false);
 
-                var searchResult = search.search(searchOptions);
+                var searchResult = search.search(searchOptions, pageRequest);
                 totalCount = searchResult.getTotalHits();
                 var ids = searchResult.getSearchHits().stream()
                         .map(hit -> hit.getContent().id)

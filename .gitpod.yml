@@ -24,24 +24,6 @@ ports:
 # NodeJS debugging
 - port: 9229
   onOpen: ignore
-- port: 9090
-  onOpen: ignore
-  name: Upstream
-  description: Reverse Proxy
-  visibility: public
-- port: 2019
-  onOpen: ignore
-  name: Upstream
-  description: Admin
-- port: 9091
-  onOpen: ignore
-  name: LB
-  description: Reverse Proxy
-  visibility: public
-- port: 2020
-  onOpen: ignore
-  name: LB
-  description: Admin
 
 tasks:
 - init: |
@@ -52,49 +34,31 @@ tasks:
     server/gradlew -p server assemble downloadTestExtensions
   name: Server
   command: |
-    gp sync-done init-build
     if [[ $NPM_TOKEN ]]; then echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc; fi
     # Start Elasticsearch as background process
     $ES_HOME/bin/elasticsearch -d -p $ES_HOME/pid -Ediscovery.type=single-node -Expack.ml.enabled=false
-    gp ports await 9200
+    gp await-port 9200
     # Start the server application
     cd server
     ./scripts/generate-properties.sh
     ./gradlew runServer
 - name: WebUI
   command: |
-    gp ports await 8080
+    gp await-port 8080
     # Start Express for serving frontend resources
     cd webui
     yarn start:default
-- name: CLI
+- name: Publisher
   command: |
-    gp sync-await init-build
-    cd cli
-    yarn watch
-- name: Upstream
-  command: |
-    cd proxies/upstream
-    caddy run
-- name: LB
-  command: |
-    cd proxies/lb
-    caddy run
-- name: Sync
-  command: |
-    gp sync-await init-build
-    cd cli
+    gp await-port 8080
+    # Use the CLI to publish some test extensions to the running server
+    export OVSX_REGISTRY_URL=http://localhost:8080
+    export OVSX_PAT=super_token
+    export PUBLISHERS="DotJoshJohnson eamodio Equinusocio felixfbecker formulahendry HookyQR ms-azuretools ms-mssql ms-python ms-vscode octref redhat ritwickdey sburg vscode vscodevim Wscats"
+    for pub in $PUBLISHERS; do cli/lib/ovsx create-namespace $pub; done
+    find server/build/test-extensions-builtin -name '*.vsix' -exec cli/lib/ovsx publish '{}' \;
+    find server/build/test-extensions -name '*.vsix' -exec cli/lib/ovsx publish '{}' \;
 
-# - name: Publisher
-#   command: |
-#     gp ports await 8080
-#     # Use the CLI to publish some test extensions to the running server
-#     export OVSX_REGISTRY_URL=http://localhost:8080
-#     export OVSX_PAT=super_token
-#     export PUBLISHERS="DotJoshJohnson eamodio Equinusocio felixfbecker formulahendry HookyQR ms-azuretools ms-mssql ms-python ms-vscode octref redhat ritwickdey sburg vscode vscodevim Wscats"
-#     for pub in $PUBLISHERS; do cli/lib/ovsx create-namespace $pub; done
-#     find server/build/test-extensions-builtin -name '*.vsix' -exec cli/lib/ovsx publish '{}' \;
-#     find server/build/test-extensions -name '*.vsix' -exec cli/lib/ovsx publish '{}' \;
 vscode:
   extensions:
     - dbaeumer.vscode-eslint
@@ -102,4 +66,3 @@ vscode:
     - vscjava.vscode-java-debug
     - vscjava.vscode-java-test
     - richardwillis.vscode-gradle
-    - matthewpi.caddyfile-support
