@@ -150,7 +150,7 @@ public class ExtensionService {
             throw new ErrorResultException("Invalid 'extensionDependencies' format. Expected: '${namespace}.${name}'");
         }
         var extensionCount = repositories.countExtensions(split[1], split[0]);
-        if (extensionCount == 0 && split[0] != "vscode") {
+        if (extensionCount == 0) {
             throw new ErrorResultException("Cannot resolve dependency: " + dependency);
         }
         var depList = extVersion.getDependencies();

@@ -82,17 +82,6 @@ export class Registry {
         }
     }
 
-    mirrorMetadata(metadata: MirrorMetadata): Promise<Response> {
-        try {
-            const url = this.getUrl('api/-/mirrorMetadata');
-            return this.post(JSON.stringify(metadata), url, {
-                'Content-Type': 'application/json'
-            }, this.maxPublishSize);
-        } catch (err) {
-            return Promise.reject(err);
-        }
-    }
-
     download(file: string, url: URL): Promise<void> {
         return new Promise((resolve, reject) => {
             const stream = fs.createWriteStream(file);
@@ -327,12 +316,4 @@ export interface ErrorResponse {
     path?: string;
     timestamp?: string;
     trace?: string;
-}
-
-export interface MirrorMetadata {
-    name: string;
-    namespace: string;
-    averageRating: number;
-    downloadCount: number;
-    allVersions?: {version: string; timestamp: string}[];
 }

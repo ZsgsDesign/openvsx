@@ -7,14 +7,8 @@
 # https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#load-balancing
 # https://github.com/caddyserver/caddy/issues/4245
 :9091 {
-	log {
-		level INFO
-	}
-	
 	reverse_proxy :9090 :8080 {
 		header_up Host open-vsx.org
-	 	trusted_proxies 159.69.172.0/20 34.149.181.0/20 10.0.2.0/20 10.20.0.0/16
-		# trusted_proxies private_ranges
 
 		lb_policy first
 		lb_try_duration 10s

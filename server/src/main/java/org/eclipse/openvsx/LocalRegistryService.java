@@ -37,9 +37,6 @@ import org.eclipse.openvsx.search.ISearchService;
 import org.eclipse.openvsx.search.SearchUtilService;
 import org.eclipse.openvsx.storage.StorageUtilService;
 import org.eclipse.openvsx.util.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.elasticsearch.core.SearchHit;
@@ -518,42 +515,6 @@ public class LocalRegistryService implements IExtensionRegistry {
         return ResultJson.success("Deleted review for " + extension.getNamespace().getName() + "." + extension.getName());
     }
 
-    @Transactional(rollbackOn = ResponseStatusException.class)
-    public ResultJson mirrorMetadata(MirrorMetadataJson metadata) {
-        var extension = repositories.findExtension(metadata.name, metadata.namespace);
-        if (extension == null || !extension.isActive()) {
-            return ResultJson.error("Extension not found: " + metadata.namespace + "." + metadata.name);
-        }
-        
-        extension.setDownloadCount(metadata.downloadCount);
-        extension.setAverageRating(metadata.averageRating);
-        
-        // extension.
-        var latestVer = extension.getLatest();
-        var oldestVer = extension.getOldest();
-        var allVersions = extension.getVersions();
-        for(var versionMetadata : metadata.allVersions) {
-            ExtensionVersion found = allVersions.stream()
-                .filter(v -> v.getVersion().equals(versionMetadata.version))
-                .findAny()
-                .orElse(null);
-            if (found != null) {
-                var time = LocalDateTime.parse(versionMetadata.timestamp, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-                found.setTimestamp(time);
-                if (found.getVersion().equals(latestVer.getVersion())) {
-                    extension.setLastUpdatedDate(time);
-                } else if (found.getVersion().equals(oldestVer.getVersion())) {
-                    extension.setPublishedDate(time);
-                }
-            }
-        }
-
-        cache.evictExtensionJsons(metadata.namespace, metadata.name);
-        search.updateSearchEntry(extension);
-        
-        return ResultJson.success("Updated metadata for " + extension.getNamespace().getName() + "." + extension.getName());
-    }
-    
     private Double computeAverageRating(Extension extension) {
         var activeReviews = repositories.findActiveReviews(extension);
         if (activeReviews.isEmpty()) {

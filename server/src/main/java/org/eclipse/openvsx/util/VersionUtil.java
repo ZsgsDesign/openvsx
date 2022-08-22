@@ -87,22 +87,6 @@ public class VersionUtil {
         return CACHE.getUnchecked(context).orElse(null);
     }
 
-    public static ExtensionVersion getOldest(Iterable<ExtensionVersion> versions, List<Predicate<ExtensionVersion>> predicates) {
-        if(versions == null || !versions.iterator().hasNext()) {
-            return null;
-        }
-
-        var stream = StreamSupport.stream(versions.spliterator(), false);
-        for(var predicate : predicates) {
-            stream = stream.filter(predicate);
-        }
-
-        return stream.max(Comparator.comparing(ExtensionVersion::getSemanticVersion)
-                .thenComparing(TargetPlatform::isUniversal)
-                .thenComparing(ExtensionVersion::getTargetPlatform))
-                .orElse(null);
-    }
-    
     public static void clearCache() {
         CACHE.invalidateAll();
         CACHE_DTO.invalidateAll();

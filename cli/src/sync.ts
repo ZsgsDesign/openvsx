@@ -15,7 +15,7 @@ import fetch from 'node-fetch';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { Extension, MirrorMetadata, Registry } from "./registry";
+import { Extension, Registry } from "./registry";
 import { matchExtensionId } from './util';
 import { download } from './get';
 
@@ -106,10 +106,6 @@ async function fetchAndPublishExtension(extensionId: string) {
         return;
     }
 
-    if (match[1] === 'vscode') {
-        return;
-    }
-
     let extension: Extension;
     try {
         extension = await upstream.getMetadata(match[1], match[2]);
@@ -134,13 +130,6 @@ async function fetchAndPublishExtension(extensionId: string) {
         console.error(`Failed to resolve extension ${extensionId} from ${registry.url}:`, e);
     }
     // TODO(ak) how to deal with removed extensions?
-    const metadata: MirrorMetadata = {
-        name: extension.name,
-        namespace: extension.namespace,
-        downloadCount: extension.downloadCount,
-        averageRating: extension.averageRating ?? 0,
-        allVersions: []
-    };
     for (const version of Object.keys(extension.allVersions).reverse()) {
         if (extension.versionAlias.includes(version)) {
             continue;
@@ -148,40 +137,23 @@ async function fetchAndPublishExtension(extensionId: string) {
         if (published?.allVersions[version]) {
             continue;
         }
-
-        const extensionVersion = await fetchExtensionVersion(extension, version);
-        if (!extensionVersion) {
-            continue;
-        }
-
-        metadata.allVersions!.push({ version, timestamp: extensionVersion.timestamp });
-
-        await publishExtensionVersion(extensionVersion, published);
+        await fetchAndPublishExtensionVersion(extensionId, version, extension.allVersions[version], published);
     }
-
-    await mirrorExtensionMetadata(metadata);
 }
 
-async function fetchExtensionVersion(extension: Extension, version: string): Promise<Extension | undefined> {
-    const extensionId = `${extension.namespace}.${extension.name}`;
-    const versionUrl = extension.allVersions[version];
-
-    let extensionVersion: Extension | undefined;
+async function fetchAndPublishExtensionVersion(extensionId: string, version: string, versionUrl: string, published: Extension | undefined) {
+    let extension: Extension;
     try {
-        extensionVersion = await upstream.getJson<Extension>(new URL(versionUrl));
-        if (extensionVersion.error) {
-            throw new Error(extensionVersion.error);
+        extension = await upstream.getJson(new URL(versionUrl));
+        if (extension.error) {
+            throw new Error(extension.error);
         }
     } catch (e) {
         console.error(`❌ Failed to resolve extension ${extensionId}@${version}:`, e);
+        return;
     }
-    return extensionVersion;
-}
-
-async function publishExtensionVersion(extension: Extension, published: Extension | undefined) {
-    const extensionId = `${extension.namespace}.${extension.name}`;
-    const version = extension.version;
-
+    // resolving alias i.e. preview
+    version = extension.version;
     const downloadUrl = extension.files.download;
     if (!downloadUrl) {
         console.error(`❌ Failed to download extension ${extensionId}@${version}: download url is missing.`);
@@ -230,17 +202,6 @@ async function publishExtensionVersion(extension: Extension, published: Extensio
     }
 }
 
-async function mirrorExtensionMetadata(metadata: MirrorMetadata) {
-    const extensionId = `${metadata.namespace}.${metadata.name}`;
-
-    try {
-        await registry.mirrorMetadata(metadata);
-        console.log(`✔ Mirror extension metadata ${extensionId}`);
-    } catch (e) {
-        console.error(`✗ Failed to mirror extension metadata ${extensionId}:`, e);
-    }
-}
-
 /**
  * @param {string[]} extIds
  */
@@ -256,12 +217,12 @@ async function fetchAndPublishExtensions(extIds: string[]) {
 
 
 async function main() {
+    // commont test
+    await fetchAndPublishExtension("golang.Go");
     // TODO(ak) ignore pre-release and targeted at the beginning and rely on upstream for it?
     // TODO(ak) target test? -> what would it mean if upstream has a new attribute but we sync without respecting it?
     // pre-release test
     await fetchAndPublishExtension("GitHub.vscode-pull-request-github");
-    // commont test
-    await fetchAndPublishExtension("golang.Go");
     /*const xmlData = await fetchSitemapContent();
     const activeExtensions = await parseSitemapData(xmlData);
     await fetchAndPublishExtensions(activeExtensions.map(({ extId }) => extId));*/

@@ -53,7 +53,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .cors()
                 .and()
             .csrf()
-                .ignoringAntMatchers("/api/-/publish", "/api/-/namespace/create", "/api/-/mirrorMetadata", "/api/-/query", "/vscode/**")
+                .ignoringAntMatchers("/api/-/publish", "/api/-/namespace/create", "/api/-/query", "/vscode/**")
                 .and()
             .exceptionHandling()
                 // Respond with 403 status when the user is not logged in

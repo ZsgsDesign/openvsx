@@ -19,7 +19,6 @@ import com.google.common.collect.Iterables;
 
 import io.swagger.annotations.*;
 import org.eclipse.openvsx.json.ExtensionJson;
-import org.eclipse.openvsx.json.MirrorMetadataJson;
 import org.eclipse.openvsx.json.NamespaceJson;
 import org.eclipse.openvsx.json.QueryParamJson;
 import org.eclipse.openvsx.json.QueryResultJson;
@@ -731,34 +730,4 @@ public class RegistryAPI {
         }
     }
 
-    @PostMapping(
-        path = "/api/-/mirrorMetadata",
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    @ApiIgnore
-    public ResponseEntity<ResultJson> mirrorMetadata(@RequestBody(required = false) MirrorMetadataJson metadata) {
-        if (metadata == null) {
-            return new ResponseEntity<>(ResultJson.error("No JSON input."), HttpStatus.BAD_REQUEST);
-        }
-        if (Strings.isNullOrEmpty(metadata.name)) {
-            return new ResponseEntity<>(ResultJson.error("Missing required property 'name'."),  HttpStatus.BAD_REQUEST);
-        }
-        if (Strings.isNullOrEmpty(metadata.namespace)) {
-            return new ResponseEntity<>(ResultJson.error("Missing required property 'namespace'."),  HttpStatus.BAD_REQUEST);
-        }
-        if (metadata.averageRating < 0 || metadata.averageRating > 5) {
-            return new ResponseEntity<>(ResultJson.error("The rating must be an integer number between 0 and 5."), HttpStatus.BAD_REQUEST);
-        }
-        if (metadata.downloadCount < 0) {
-            return new ResponseEntity<>(ResultJson.error("The downloadCount must be a positive integer number."), HttpStatus.BAD_REQUEST);
-        }
-
-        var json = local.mirrorMetadata(metadata);
-        if (json.error == null) {
-            return new ResponseEntity<>(json, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
-        }
-    }
 }

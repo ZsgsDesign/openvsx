@@ -190,20 +190,4 @@ public class Extension {
 
         return VersionUtil.getLatest(getVersions(), filters);
     }
-    
-    public ExtensionVersion getOldest() {
-        return getOldest(null, true);
-    }
-    
-    public ExtensionVersion getOldest(String targetPlatform, boolean onlyActive) {
-        var filters = new ArrayList<Predicate<ExtensionVersion>>();
-        if(TargetPlatform.isValid(targetPlatform)) {
-            filters.add(ev -> ev.getTargetPlatform().equals(targetPlatform));
-        }
-        if(onlyActive) {
-            filters.add(ExtensionVersion::isActive);
-        }
-        
-        return VersionUtil.getOldest(getVersions(), filters);
-    }
 }
